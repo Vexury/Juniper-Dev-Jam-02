@@ -10,8 +10,14 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Transform marbleStart;
     [SerializeField] private GlassShell glassShell;
     [SerializeField] private FinishZone finishZone;
-    [SerializeField] private float failResetDelay = 0.5f;
+    [SerializeField] private Rigidbody sphereRoot;
+    [SerializeField] private CameraSwitcher cameraSwitcher;
     [SerializeField] private float winLoadDelay = 1.5f;
+    [SerializeField] private float sphereResetDuration = 1f;
+    [SerializeField] private float sphereResetMarbleDelay = 0.5f;
+
+    [SerializeField] private AudioClip musicLoop;
+    [SerializeField] private AudioClip ambienceLoop;
 
     private enum State { Playing, Failed, Won }
     private State _state;
@@ -23,13 +29,13 @@ public class GameManager : MonoBehaviour
 
     private void OnEnable()
     {
-        glassShell.OnMarbleFailed += HandleFail;
+        glassShell.OnMarbleFailed += ResetAll;
         finishZone.OnMarbleFinished += HandleWin;
     }
 
     private void OnDisable()
     {
-        glassShell.OnMarbleFailed -= HandleFail;
+        glassShell.OnMarbleFailed -= ResetAll;
         finishZone.OnMarbleFinished -= HandleWin;
     }
 
@@ -37,24 +43,9 @@ public class GameManager : MonoBehaviour
     {
         _state = State.Playing;
         inputReader.EnableGameplayInput();
-    }
 
-    private void HandleFail()
-    {
-        if (_state != State.Playing) return;
-        _state = State.Failed;
-        marble.linearVelocity = Vector3.zero;
-        marble.angularVelocity = Vector3.zero;
-        StartCoroutine(FailRoutine());
-    }
-
-    private IEnumerator FailRoutine()
-    {
-        inputReader.DisableAllInput();
-        yield return new WaitForSeconds(failResetDelay);
-        ResetMarble();
-        inputReader.EnableGameplayInput();
-        _state = State.Playing;
+        AudioManager.Instance.PlayMusic(musicLoop);
+        AudioManager.Instance.PlayAmbience(ambienceLoop);
     }
 
     private void HandleWin()
@@ -71,10 +62,49 @@ public class GameManager : MonoBehaviour
         SceneController.Instance.LoadNextScene();
     }
 
-    private void ResetMarble()
+    public void ResetAll()
     {
+        if (_state != State.Playing) return;
+        _state = State.Failed;
+        cameraSwitcher.SwitchToOutside();
         marble.linearVelocity = Vector3.zero;
         marble.angularVelocity = Vector3.zero;
+        marble.isKinematic = true;
+        StartCoroutine(SphereResetRoutine());
+    }
+
+    private IEnumerator SphereResetRoutine()
+    {
+        inputReader.DisableAllInput();
+
+        Quaternion start = sphereRoot.rotation;
+        float elapsed = 0f;
+
+        while (elapsed < sphereResetDuration)
+        {
+            elapsed += Time.fixedDeltaTime;
+            float t = Mathf.Clamp01(elapsed / sphereResetDuration);
+            sphereRoot.MoveRotation(Quaternion.Slerp(start, Quaternion.identity, t));
+            yield return new WaitForFixedUpdate();
+        }
+
+        sphereRoot.MoveRotation(Quaternion.identity);
+        yield return new WaitForSeconds(sphereResetMarbleDelay);
+
+        ResetMarble();
+        // Let physics process the teleport so the resulting OnTriggerExit is
+        // consumed while still in Failed state, instead of re-triggering a reset.
+        yield return new WaitForFixedUpdate();
+
+        inputReader.EnableGameplayInput();
+        _state = State.Playing;
+    }
+
+    private void ResetMarble()
+    {
         marble.position = marbleStart.position;
+        marble.isKinematic = false;
+        marble.linearVelocity = Vector3.zero;
+        marble.angularVelocity = Vector3.zero;
     }
 }

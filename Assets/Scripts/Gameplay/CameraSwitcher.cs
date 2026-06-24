@@ -22,7 +22,17 @@ public class CameraSwitcher : MonoBehaviour
     private void OnSecondaryAction(bool performed)
     {
         if (!performed) return;
-        _isClose = !_isClose;
+        SetClose(!_isClose);
+    }
+
+    public void SwitchToOutside()
+    {
+        SetClose(false);
+    }
+
+    private void SetClose(bool isClose)
+    {
+        _isClose = isClose;
         closeCam.enabled = _isClose;
         sphereRotator.enabled = !_isClose;
     }

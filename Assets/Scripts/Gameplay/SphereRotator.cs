@@ -3,7 +3,7 @@ using UnityEngine;
 public class SphereRotator : MonoBehaviour
 {
     [SerializeField] private InputReader inputReader;
-    [SerializeField] private float rotationSpeed = 90f;
+    [SerializeField] private float torqueStrength = 500f;
 
     private Rigidbody _rb;
     private Vector2 _moveInput;
@@ -35,9 +35,7 @@ public class SphereRotator : MonoBehaviour
     {
         if (_moveInput == Vector2.zero && _rollInput == 0f) return;
 
-        Quaternion yRot = Quaternion.AngleAxis(-_moveInput.x * rotationSpeed * Time.fixedDeltaTime, Vector3.up);
-        Quaternion xRot = Quaternion.AngleAxis(_moveInput.y * rotationSpeed * Time.fixedDeltaTime, Vector3.right);
-        Quaternion zRot = Quaternion.AngleAxis(-_rollInput * rotationSpeed * Time.fixedDeltaTime, Vector3.forward);
-        _rb.MoveRotation(yRot * xRot * zRot * _rb.rotation);
+        Vector3 torque = new Vector3(_moveInput.y, -_moveInput.x, -_rollInput) * torqueStrength;
+        _rb.AddTorque(torque, ForceMode.Force);
     }
 }

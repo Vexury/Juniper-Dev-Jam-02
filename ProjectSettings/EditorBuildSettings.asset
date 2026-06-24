@@ -6,7 +6,13 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/SampleScene.unity
+    path: Assets/Scenes/BootLoader.unity
+    guid: 2f6975e9adc4c78469832872c4e90863
+  - enabled: 1
+    path: Assets/Scenes/MainMenu.unity
+    guid: 96b96b300f609784cac0501942d2c967
+  - enabled: 1
+    path: Assets/Scenes/MarbleGame.unity
     guid: 99c9720ab356a0642a771bea13969a05
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 79396856c66b6364480cfc3c56095a54, type: 3}
