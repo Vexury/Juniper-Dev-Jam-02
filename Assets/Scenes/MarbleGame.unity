@@ -6297,6 +6297,7 @@ MonoBehaviour:
   sphereResetMarbleDelay: 0.5
   musicLoop: {fileID: 8300000, guid: 0923c4b8d0b02a74bac286735c17d73c, type: 3}
   ambienceLoop: {fileID: 8300000, guid: e553d05325c7759458f067a13202b23d, type: 3}
+  rotationSound: {fileID: 0}
 --- !u!1 &676521642
 GameObject:
   m_ObjectHideFlags: 0

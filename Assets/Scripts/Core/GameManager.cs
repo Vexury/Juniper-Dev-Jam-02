@@ -18,9 +18,13 @@ public class GameManager : MonoBehaviour
 
     [SerializeField] private AudioClip musicLoop;
     [SerializeField] private AudioClip ambienceLoop;
+    [SerializeField] private AudioClip rotationSound;
 
     private enum State { Playing, Failed, Won }
     private State _state;
+
+    private Vector2 _moveInput;
+    private float _rollInput;
 
     private void Awake()
     {
@@ -31,12 +35,16 @@ public class GameManager : MonoBehaviour
     {
         glassShell.OnMarbleFailed += ResetAll;
         finishZone.OnMarbleFinished += HandleWin;
+        inputReader.MoveEvent += OnMove;
+        inputReader.RollEvent += OnRoll;
     }
 
     private void OnDisable()
     {
         glassShell.OnMarbleFailed -= ResetAll;
         finishZone.OnMarbleFinished -= HandleWin;
+        inputReader.MoveEvent -= OnMove;
+        inputReader.RollEvent -= OnRoll;
     }
 
     private void Start()
@@ -98,6 +106,17 @@ public class GameManager : MonoBehaviour
 
         inputReader.EnableGameplayInput();
         _state = State.Playing;
+    }
+
+    private void OnMove(Vector2 input) { _moveInput = input; UpdateRotationSound(); }
+    private void OnRoll(float input) { _rollInput = input; UpdateRotationSound(); }
+
+    private void UpdateRotationSound()
+    {
+        if (rotationSound == null) return;
+        bool hasInput = _moveInput != Vector2.zero || _rollInput != 0f;
+        if (hasInput) AudioManager.Instance.PlayLoopingSFX(rotationSound);
+        else AudioManager.Instance.StopLoopingSFX();
     }
 
     private void ResetMarble()
