@@ -37,6 +37,7 @@ public class GameManager : MonoBehaviour
         finishZone.OnMarbleFinished += HandleWin;
         inputReader.MoveEvent += OnMove;
         inputReader.RollEvent += OnRoll;
+        inputReader.ReloadEvent += ResetAll;
     }
 
     private void OnDisable()
@@ -45,6 +46,7 @@ public class GameManager : MonoBehaviour
         finishZone.OnMarbleFinished -= HandleWin;
         inputReader.MoveEvent -= OnMove;
         inputReader.RollEvent -= OnRoll;
+        inputReader.ReloadEvent -= ResetAll;
     }
 
     private void Start()
@@ -115,7 +117,7 @@ public class GameManager : MonoBehaviour
     {
         if (rotationSound == null) return;
         bool hasInput = _moveInput != Vector2.zero || _rollInput != 0f;
-        if (hasInput) AudioManager.Instance.PlayLoopingSFX(rotationSound);
+        if (hasInput && !cameraSwitcher.IsInsideMode) AudioManager.Instance.PlayLoopingSFX(rotationSound);
         else AudioManager.Instance.StopLoopingSFX();
     }
 

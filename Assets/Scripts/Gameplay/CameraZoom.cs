@@ -1,3 +1,4 @@
+using System.Collections;
 using Unity.Cinemachine;
 using UnityEngine;
 
@@ -8,11 +9,38 @@ public class CameraZoom : MonoBehaviour
     [SerializeField] private float minRadius = 4f;
     [SerializeField] private float maxRadius = 20f;
 
+    [Header("Transition In")]
+    [SerializeField] private float transitionStartRadius = 30f;
+    [SerializeField] private float transitionEndRadius = 10f;
+    [SerializeField] private float transitionDelay = 0.5f;
+    [SerializeField] private float transitionDuration = 1.5f;
+
     private CinemachineOrbitalFollow _orbitalFollow;
 
     private void Awake()
     {
         _orbitalFollow = GetComponent<CinemachineOrbitalFollow>();
+    }
+
+    private void Start()
+    {
+        StartCoroutine(TransitionIn());
+    }
+
+    private IEnumerator TransitionIn()
+    {
+        _orbitalFollow.Radius = transitionStartRadius;
+        yield return new WaitForSeconds(transitionDelay);
+
+        float elapsed = 0f;
+        while (elapsed < transitionDuration)
+        {
+            elapsed += Time.deltaTime;
+            _orbitalFollow.Radius = Mathf.Lerp(transitionStartRadius, transitionEndRadius, elapsed / transitionDuration);
+            yield return null;
+        }
+
+        _orbitalFollow.Radius = transitionEndRadius;
     }
 
     private void OnEnable()

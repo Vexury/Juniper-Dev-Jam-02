@@ -6,6 +6,9 @@ public class CameraSwitcher : MonoBehaviour
     [SerializeField] private InputReader inputReader;
     [SerializeField] private CinemachineCamera closeCam;
     [SerializeField] private SphereRotator sphereRotator;
+    [SerializeField] private MarbleController marbleController;
+
+    public bool IsInsideMode => _isClose;
 
     private bool _isClose;
 
@@ -35,5 +38,6 @@ public class CameraSwitcher : MonoBehaviour
         _isClose = isClose;
         closeCam.enabled = _isClose;
         sphereRotator.enabled = !_isClose;
+        marbleController.enabled = _isClose;
     }
 }

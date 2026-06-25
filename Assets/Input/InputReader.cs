@@ -24,6 +24,7 @@ public class InputReader : ScriptableObject, IPlayerActions, IUIActions
     public event Action<bool> UnlockCursorEvent;
     public event Action<float> RollEvent;
     public event Action<float> ZoomEvent;
+    public event Action ReloadEvent;
 
     private void OnEnable()
     {
@@ -185,6 +186,12 @@ public class InputReader : ScriptableObject, IPlayerActions, IUIActions
     public void OnScroll(InputAction.CallbackContext context)
     {
         ZoomEvent?.Invoke(context.ReadValue<Vector2>().y);
+    }
+
+    public void OnReload(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+            ReloadEvent?.Invoke();
     }
 
     #endregion
