@@ -6,10 +6,8 @@ using static Controls;
 [CreateAssetMenu(fileName = "New InputReader", menuName = "Input/InputReader")]
 public class InputReader : ScriptableObject, IPlayerActions, IUIActions
 {
-    // Generated
     private Controls controls;
 
-    // Player actions
     public event Action<Vector2> MoveEvent;
     public event Action<Vector2> LookEvent;
     public event Action<bool> PrimaryActionEvent;
@@ -35,7 +33,6 @@ public class InputReader : ScriptableObject, IPlayerActions, IUIActions
             controls.UI.SetCallbacks(this);
         }
 
-        // Set the default input mode
         EnableGameplayInput();
     }
 
@@ -192,6 +189,12 @@ public class InputReader : ScriptableObject, IPlayerActions, IUIActions
     {
         if (context.performed)
             ReloadEvent?.Invoke();
+    }
+
+    public void OnSecondaryInteract(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+            PauseEvent?.Invoke();
     }
 
     #endregion

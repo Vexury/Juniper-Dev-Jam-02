@@ -11,6 +11,7 @@ public class TrackMove : MonoBehaviour
     [SerializeField] private PatrolAxis patrolAxis = PatrolAxis.X;
     [SerializeField] private float range = 2f;
     [SerializeField] private float speed = 1f;
+    [SerializeField] private bool startReversed = false;
     [SerializeField] private AnimationCurve curve;
 
     [Header("Rotate")]
@@ -18,13 +19,21 @@ public class TrackMove : MonoBehaviour
     [SerializeField] private Vector3 rotateAxis = Vector3.up;
     [SerializeField] private float degreesPerSecond = 90f;
 
+    private Rigidbody _rb;
+    private Quaternion _initialLocalRotation;
+
     private Vector3 _startLocalPos;
     private Vector3 _patrolLocalDir;
     private float _t;
-    private int _direction = 1;
+    private int _direction;
+
+    private Vector3 _centerLocalOffset;
+    private Vector3 _centerParentLocalPos;
 
     private Vector3 _initialOffset;
-    private Vector3 _centerLocalOffset;
+    private Vector3 _pivotParentLocal;
+    private Vector3 _initialOffsetParentLocal;
+
     private float _totalAngle;
 
     private void Reset()
@@ -34,7 +43,11 @@ public class TrackMove : MonoBehaviour
 
     private void Awake()
     {
+        _rb = GetComponent<Rigidbody>();
+        _initialLocalRotation = transform.localRotation;
         _startLocalPos = transform.localPosition;
+        _direction = startReversed ? -1 : 1;
+        _t = startReversed ? 1f : 0f;
 
         _patrolLocalDir = patrolAxis switch
         {
@@ -49,6 +62,11 @@ public class TrackMove : MonoBehaviour
             if (pivot != null)
             {
                 _initialOffset = transform.position - pivot.position;
+                if (transform.parent != null)
+                {
+                    _pivotParentLocal = transform.parent.InverseTransformPoint(pivot.position);
+                    _initialOffsetParentLocal = _startLocalPos - _pivotParentLocal;
+                }
             }
             else
             {
@@ -56,6 +74,8 @@ public class TrackMove : MonoBehaviour
                 _centerLocalOffset = rend != null
                     ? transform.InverseTransformPoint(rend.bounds.center)
                     : Vector3.zero;
+                if (transform.parent != null)
+                    _centerParentLocalPos = _startLocalPos + _initialLocalRotation * _centerLocalOffset;
             }
         }
     }
@@ -75,20 +95,74 @@ public class TrackMove : MonoBehaviour
         else if (_t <= 0f) { _t = 0f; _direction = 1; }
 
         float curved = curve.Evaluate(_t);
-        transform.localPosition = _startLocalPos + _patrolLocalDir * Mathf.Lerp(-range * 0.5f, range * 0.5f, curved);
+        Vector3 targetLocalPos = _startLocalPos + _patrolLocalDir * Mathf.Lerp(-range * 0.5f, range * 0.5f, curved);
+
+        if (_rb != null)
+        {
+            Vector3 worldPos = transform.parent != null
+                ? transform.parent.TransformPoint(targetLocalPos)
+                : targetLocalPos;
+            Quaternion worldRot = transform.parent != null
+                ? transform.parent.rotation * _initialLocalRotation
+                : _initialLocalRotation;
+            _rb.MovePosition(worldPos);
+            _rb.MoveRotation(worldRot);
+        }
+        else
+        {
+            transform.localPosition = targetLocalPos;
+        }
     }
 
     private void DoRotate()
     {
         if (pivot == null)
         {
-            Vector3 worldCenter = transform.TransformPoint(_centerLocalOffset);
-            Vector3 worldAxis = transform.TransformDirection(rotateAxis.normalized);
-            transform.RotateAround(worldCenter, worldAxis, degreesPerSecond * Time.fixedDeltaTime);
+            if (_rb != null && transform.parent != null)
+            {
+                _totalAngle += degreesPerSecond * Time.fixedDeltaTime;
+                Quaternion parentRot = transform.parent.rotation;
+                Vector3 parentPos = transform.parent.position;
+                Quaternion worldRot = parentRot * _initialLocalRotation * Quaternion.AngleAxis(_totalAngle, rotateAxis.normalized);
+                Vector3 worldCenter = parentPos + parentRot * _centerParentLocalPos;
+                _rb.MoveRotation(worldRot);
+                _rb.MovePosition(worldCenter - worldRot * _centerLocalOffset);
+            }
+            else if (_rb != null)
+            {
+                Vector3 worldCenter = transform.TransformPoint(_centerLocalOffset);
+                Vector3 worldAxis = transform.TransformDirection(rotateAxis.normalized);
+                Quaternion delta = Quaternion.AngleAxis(degreesPerSecond * Time.fixedDeltaTime, worldAxis);
+                _rb.MovePosition(worldCenter + delta * (transform.position - worldCenter));
+                _rb.MoveRotation(delta * _rb.rotation);
+            }
+            else
+            {
+                Vector3 worldCenter = transform.TransformPoint(_centerLocalOffset);
+                Vector3 worldAxis = transform.TransformDirection(rotateAxis.normalized);
+                transform.RotateAround(worldCenter, worldAxis, degreesPerSecond * Time.fixedDeltaTime);
+            }
             return;
         }
 
         _totalAngle += degreesPerSecond * Time.fixedDeltaTime;
-        transform.position = pivot.position + Quaternion.AngleAxis(_totalAngle, rotateAxis.normalized) * _initialOffset;
+
+        if (_rb != null && transform.parent != null)
+        {
+            Quaternion parentRot = transform.parent.rotation;
+            Vector3 parentPos = transform.parent.position;
+            Vector3 worldPivot = parentPos + parentRot * _pivotParentLocal;
+            Vector3 worldPos = worldPivot + parentRot * (Quaternion.AngleAxis(_totalAngle, rotateAxis.normalized) * _initialOffsetParentLocal);
+            _rb.MovePosition(worldPos);
+            _rb.MoveRotation(parentRot * _initialLocalRotation);
+        }
+        else if (_rb != null)
+        {
+            _rb.MovePosition(pivot.position + Quaternion.AngleAxis(_totalAngle, rotateAxis.normalized) * _initialOffset);
+        }
+        else
+        {
+            transform.position = pivot.position + Quaternion.AngleAxis(_totalAngle, rotateAxis.normalized) * _initialOffset;
+        }
     }
 }

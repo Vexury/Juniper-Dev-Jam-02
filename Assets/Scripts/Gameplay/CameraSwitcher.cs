@@ -25,6 +25,8 @@ public class CameraSwitcher : MonoBehaviour
     private void OnSecondaryAction(bool performed)
     {
         if (!performed) return;
+        if (GameManager.Instance != null && GameManager.Instance.CurrentState != GameManager.State.Playing) return;
+        if (sphereRotator.IsWobbling) return;
         SetClose(!_isClose);
     }
 
